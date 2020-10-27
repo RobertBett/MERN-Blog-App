@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { Component } from 'react';
 
 import Image from '../../../components/Image/Image';
@@ -14,19 +15,14 @@ class SinglePost extends Component {
 
   componentDidMount() {
     const postId = this.props.match.params.postId;
-    fetch('URL')
-      .then(res => {
-        if (res.status !== 200) {
-          throw new Error('Failed to fetch status');
-        }
-        return res.json();
-      })
-      .then(resData => {
+    axios.get(`http://localhost:8080/feed/post/${postId}`)
+      .then(({ data }) => {
+        console.log(data, 'THE LAST THING');
         this.setState({
-          title: resData.post.title,
-          author: resData.post.creator.name,
-          date: new Date(resData.post.createdAt).toLocaleDateString('en-US'),
-          content: resData.post.content
+          title: data.post.title,
+          author: data.post.creator.name,
+          date: new Date(data.post.createdAt).toLocaleDateString('en-US'),
+          content: data.post.content
         });
       })
       .catch(err => {

@@ -1,6 +1,6 @@
 .post {
   margin: 1rem 0;
-  border: 1px solid #0b89bb;
+  border: 1px solid #0b89bbde;
   border-radius: 5px;
   padding: 0.5rem;
 }
@@ -14,7 +14,7 @@
 .post__title {
   font-size: 1.5rem;
   margin: 1rem 0;
-  color: #0b89bb;
+  color: #0b89bbde;
 }
 
 .post__image {

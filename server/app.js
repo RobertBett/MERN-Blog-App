@@ -1,6 +1,8 @@
+require('dotenv').config();
 const chalk = require('chalk');
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const feedRoutes = require('./routes/feed')
 
@@ -17,7 +19,15 @@ app.use(feedRoutes)
 
 const port = 8080;
 
-app.listen(port, () => {
-    console.log(chalk.green.bold(`On Port:${port}`))
-    console.log(chalk.green.bold.underline(`Running on http://localhost:${port}`))
-}); 
+
+const uri = process.env.MONGO_URL;
+
+mongoose.connect(uri, { useFindAndModify: false })
+.then(() => {
+    app.listen(port, () => {
+        console.log(chalk.green.bold(`On Port:${port}`))
+        console.log(chalk.green.bold.underline(`Running on http://localhost:${port}`))
+    });  
+}).catch((err) => {
+    console.error(err);
+});

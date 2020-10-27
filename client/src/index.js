@@ -7,6 +7,10 @@ import './index.css';
 import App from './App';
 
 axios.defaults.headers.post['Content-Type'] = 'application/json';
+axios.defaults.headers.delete['Content-Type'] = 'application/json';
+axios.defaults.headers.put['Content-Type'] = 'application/json';
+
+
 ReactDOM.render(
   <BrowserRouter>
     <App />

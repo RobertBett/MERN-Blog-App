@@ -1,7 +1,7 @@
 .button {
   font: inherit;
   border: 1px solid #57b1d4;
-  color: #0b89bb;
+  color: #0b89bbde;
   background: none;
   padding: 0.5rem 1rem;
   cursor: pointer;
@@ -30,7 +30,7 @@
 
 .button:hover,
 .button:active {
-  background: #0b89bb;
+  background: #0b89bbde;
   color: white;
 }
 
@@ -40,12 +40,12 @@
 
 .button--flat:hover,
 .button--flat:active {
-  background: #3691b4;
-  color: #0b89bb;
+  background: #3691b48f;
+  color: #0b89bbde;
 }
 
 .button--raised {
-  background: #0b89bb;
+  background: #0b89bbde;
   color: white;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.26);
 }
@@ -63,7 +63,7 @@
 .button--accent:hover,
 .button--accent:active {
   background: #fab83f;
-  color: #0b89bb;
+  color: #0b89bbde;
 }
 
 .button--flat.button--accent:hover,
@@ -74,7 +74,7 @@
 
 .button.button--accent.button--raised {
   background: #fab83f;
-  color: #0b89bb;
+  color: #0b89bbde;
 }
 
 .button--raised.button--accent:hover,

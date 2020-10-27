@@ -11,18 +11,19 @@ import './Feed.css';
 
 class Feed extends Component {
   state = {
-    isEditing: false,
+    openModal: false,
     posts: [],
     totalPosts: 0,
     editPost: null,
     status: '',
     postPage: 1,
     postsLoading: true,
-    editLoading: false
+    editLoading: false,
+    isEditing:false
   };
 
   componentDidMount() {
-    fetch('URL')
+    axios.get('URL')
       .then(res => {
         console.log(res)
         if (res.status !== 200) {
@@ -34,7 +35,10 @@ class Feed extends Component {
         console.log(resData)
         this.setState({ status: resData.status });
       })
-      .catch(this.catchError);
+      .catch( err =>{
+        console.error(err,'IS THIS A PROBLEM');
+        // this.catchError(err)
+      });
 
     this.loadPosts();
   }
@@ -55,10 +59,6 @@ class Feed extends Component {
     axios.get('http://localhost:8080/feed/posts')
       .then(({data}) => {
         console.log(data, 'WHATS IN THIS ');
-        // if (res.status !== 200) {
-        //   throw new Error('Failed to fetch posts.');
-        // }
-        // return res.json();
         this.setState({
           posts: data.posts,
           totalPosts: data.totalItems,
@@ -87,7 +87,7 @@ class Feed extends Component {
   };
 
   newPostHandler = () => {
-    this.setState({ isEditing: true });
+    this.setState({ openModal: true });
   };
 
   startEditPostHandler = postId => {
@@ -95,14 +95,16 @@ class Feed extends Component {
       const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
 
       return {
-        isEditing: true,
-        editPost: loadedPost
+        openModal: true,
+        isEditing:true,
+        editPost: loadedPost,
+        postId
       };
     });
   };
 
   cancelEditHandler = () => {
-    this.setState({ isEditing: false, editPost: null });
+    this.setState({ openModal: false, editPost: null });
   };
 
   finishEditHandler = postData => {
@@ -110,8 +112,47 @@ class Feed extends Component {
       editLoading: true
     });
     // Set up data (with image!)
+    const { openModal, isEditing,postId } = this.state;
     const { title, content } = postData
-
+    console.log(postId, 'THIS HAS TAKEN TOO LONG');
+    if (openModal && isEditing) {
+      axios.put(`http://localhost:8080/edit-post/${postId}`,{
+        title,
+        content
+      })
+      .then(() => {
+        return axios.get(`http://localhost:8080/feed/post/${postId}`)
+      })
+      .then(({ data }) => {
+        console.log(data,'THIS SHOULD WORK');
+        const { _id, title, content, creator, createdAt } = data.post;
+        const post = {
+          _id,
+          title,
+          content,
+          creator,
+          createdAt,
+        };
+        this.setState(prevState => {
+          let updatedPosts = [...prevState.posts];
+            const postIndex = prevState.posts.findIndex(
+              p => p._id === prevState.editPost._id
+            );
+            updatedPosts[postIndex] = post;
+          return {
+            posts: updatedPosts,
+            openModal: false,
+            editPost: null,
+            editLoading: false,
+            isEditing:true
+          };
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  } 
+  else {
     axios.post( 'http://localhost:8080/post',{
           title,
           content
@@ -125,19 +166,13 @@ class Feed extends Component {
           creator: data.post.creator,
           createdAt: data.post.createdAt
         };
+
         this.setState(prevState => {
           let updatedPosts = [...prevState.posts];
-          if (prevState.editPost) {
-            const postIndex = prevState.posts.findIndex(
-              p => p._id === prevState.editPost._id
-            );
-            updatedPosts[postIndex] = post;
-          } else if (prevState.posts.length < 2) {
             updatedPosts = prevState.posts.concat(post);
-          }
           return {
             posts: updatedPosts,
-            isEditing: false,
+            openModal: false,
             editPost: null,
             editLoading: false
           };
@@ -146,13 +181,15 @@ class Feed extends Component {
       .catch(err => {
         console.log(err);
         this.setState({
-          isEditing: false,
+          openModal: false,
           editPost: null,
           editLoading: false,
           error: err
         });
         throw new Error('Creating or editing a post failed!');
       });
+  }
+
   };
 
   statusInputChangeHandler = (input, value) => {
@@ -161,13 +198,7 @@ class Feed extends Component {
 
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
-    fetch('URL')
-      .then(res => {
-        if (res.status !== 200 && res.status !== 201) {
-          throw new Error('Deleting a post failed!');
-        }
-        return res.json();
-      })
+    axios.delete(`http://localhost:8080/delete-post/${postId}`)
       .then(resData => {
         console.log(resData);
         this.setState(prevState => {
@@ -194,7 +225,7 @@ class Feed extends Component {
       <Fragment>
         <ErrorHandler error={this.state.error} onHandle={this.errorHandler} />
         <FeedEdit
-          editing={this.state.isEditing}
+          editing={this.state.openModal}
           selectedPost={this.state.editPost}
           loading={this.state.editLoading}
           onCancelEdit={this.cancelEditHandler}
