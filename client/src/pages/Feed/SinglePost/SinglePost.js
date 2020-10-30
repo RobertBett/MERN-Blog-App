@@ -21,6 +21,7 @@ class SinglePost extends Component {
         this.setState({
           title: data.post.title,
           author: data.post.creator.name,
+          image: data.post.imageUrl,
           date: new Date(data.post.createdAt).toLocaleDateString('en-US'),
           content: data.post.content
         });
@@ -38,7 +39,7 @@ class SinglePost extends Component {
           Created by {this.state.author} on {this.state.date}
         </h2>
         <div className="single-post__image">
-          <Image contain imageUrl={this.state.image} />
+          <Image contain imageUrl={`http://localhost:8080/${this.state.image}`} />
         </div>
         <p>{this.state.content}</p>
       </section>

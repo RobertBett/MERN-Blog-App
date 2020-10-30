@@ -56,7 +56,7 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    axios.get('http://localhost:8080/feed/posts')
+    axios.get(`http://localhost:8080/feed/posts?page=${page}`)
       .then(({data}) => {
         console.log(data, 'WHATS IN THIS ');
         this.setState({
@@ -66,7 +66,6 @@ class Feed extends Component {
         });
       })
       .catch(err =>{
-        console.log(err,'IS IT FAILING??')
         this.catchError(err)
       });
   };
@@ -91,104 +90,91 @@ class Feed extends Component {
   };
 
   startEditPostHandler = postId => {
-    this.setState(prevState => {
-      const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
+      this.setState(prevState => {
+        const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
 
-      return {
-        openModal: true,
-        isEditing:true,
-        editPost: loadedPost,
-        postId
-      };
-    });
+        return {
+          openModal: true,
+          isEditing:true,
+          editPost: loadedPost,
+          postId
+        };
+      });
   };
 
   cancelEditHandler = () => {
-    this.setState({ openModal: false, editPost: null });
-  };
+      this.setState({ openModal: false, editPost: null, isEditing:false });
+    };
 
   finishEditHandler = postData => {
-    this.setState({
-      editLoading: true
-    });
-    // Set up data (with image!)
-    const { openModal, isEditing,postId } = this.state;
-    const { title, content } = postData
-    console.log(postId, 'THIS HAS TAKEN TOO LONG');
-    if (openModal && isEditing) {
-      axios.put(`http://localhost:8080/edit-post/${postId}`,{
-        title,
-        content
-      })
-      .then(() => {
-        return axios.get(`http://localhost:8080/feed/post/${postId}`)
-      })
-      .then(({ data }) => {
-        console.log(data,'THIS SHOULD WORK');
-        const { _id, title, content, creator, createdAt } = data.post;
-        const post = {
-          _id,
-          title,
-          content,
-          creator,
-          createdAt,
-        };
-        this.setState(prevState => {
-          let updatedPosts = [...prevState.posts];
-            const postIndex = prevState.posts.findIndex(
-              p => p._id === prevState.editPost._id
-            );
-            updatedPosts[postIndex] = post;
-          return {
-            posts: updatedPosts,
+      console.log(postData, 'IS THERE AN IMAGE INSIDE??');
+      const { title, content, image } = postData;
+      this.setState({
+        editLoading: true
+      });
+
+      // Set up data (with image!)
+      let formData = new FormData();
+      formData.append('title', title);
+      formData.append('content', content);
+      formData.append('image', image);
+
+      for (var key of formData.entries()) {
+        console.log(key[0] + ', ' + key[1])
+      }
+      const { openModal, isEditing,postId } = this.state; 
+
+      axios({
+          method: openModal && isEditing ?'put' : 'post',
+          url: openModal && isEditing ? 
+          `http://localhost:8080/edit-post/${postId}`
+          :'http://localhost:8080/post',
+          data: formData,
+          headers: {'Content-Type': 'multipart/form-data' }
+        })
+        .then((result) => {
+          if(openModal && isEditing )return axios.get(`http://localhost:8080/feed/post/${postId}`);
+          return result;
+        })
+        .then(({ data }) => {
+          console.log(data,'THIS SHOULD WORK');
+          const { _id, title, content, creator, createdAt, imageUrl} = data.post;
+          const post = {
+            _id,
+            title,
+            imageUrl,
+            content,
+            creator,
+            createdAt,
+          };
+          this.setState(prevState => {
+            let updatedPosts = [...prevState.posts];
+            if (openModal && isEditing) {
+              const postIndex = prevState.posts.findIndex(
+                p => p._id === prevState.editPost._id
+              );
+                updatedPosts[postIndex] = post;
+              } else{
+                updatedPosts = prevState.posts.concat(post);
+              }
+            return {
+              posts: updatedPosts,
+              openModal: false,
+              editPost: null,
+              editLoading: false,
+              isEditing: false
+            };
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+          this.setState({
             openModal: false,
             editPost: null,
             editLoading: false,
-            isEditing:true
-          };
-        });
-      })
-      .catch((err) => {
-        console.error(err);
+            isEditing: false
+          })
       });
-  } 
-  else {
-    axios.post( 'http://localhost:8080/post',{
-          title,
-          content
-        })
-      .then(({data}) => {
-        console.log(data.post,'DATA IS IN HERE');
-        const post = {
-          _id: data.post._id,
-          title: data.post.title,
-          content: data.post.content,
-          creator: data.post.creator,
-          createdAt: data.post.createdAt
-        };
-
-        this.setState(prevState => {
-          let updatedPosts = [...prevState.posts];
-            updatedPosts = prevState.posts.concat(post);
-          return {
-            posts: updatedPosts,
-            openModal: false,
-            editPost: null,
-            editLoading: false
-          };
-        });
-      })
-      .catch(err => {
-        console.log(err);
-        this.setState({
-          openModal: false,
-          editPost: null,
-          editLoading: false,
-          error: err
-        });
-        throw new Error('Creating or editing a post failed!');
-      });
-  }
 
   };
 
@@ -199,8 +185,7 @@ class Feed extends Component {
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
     axios.delete(`http://localhost:8080/delete-post/${postId}`)
-      .then(resData => {
-        console.log(resData);
+      .then(() => {
         this.setState(prevState => {
           const updatedPosts = prevState.posts.filter(p => p._id !== postId);
           return { posts: updatedPosts, postsLoading: false };

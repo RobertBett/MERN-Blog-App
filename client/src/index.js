@@ -1,14 +1,10 @@
 import React from 'react';
-import axios from 'axios';
 import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
 
 import './index.css';
 import App from './App';
 
-axios.defaults.headers.post['Content-Type'] = 'application/json';
-axios.defaults.headers.delete['Content-Type'] = 'application/json';
-axios.defaults.headers.put['Content-Type'] = 'application/json';
 
 
 ReactDOM.render(

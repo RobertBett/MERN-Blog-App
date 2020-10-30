@@ -20,7 +20,7 @@ router.get('/feed/post/:postId', getPost);
 router.get('/feed/posts', getPosts);
 
 router.post('/post', validations, createPost);
-router.put('/edit-post/:postId', editPost);
+router.put('/edit-post/:postId', validations, editPost);
 router.delete('/delete-post/:postId', deletePost);
 
 
