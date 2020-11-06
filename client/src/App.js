@@ -12,12 +12,13 @@ import SinglePostPage from './pages/Feed/SinglePost/SinglePost';
 import LoginPage from './pages/Auth/Login';
 import SignupPage from './pages/Auth/Signup';
 import './App.css';
+import axios from 'axios';
 
 class App extends Component {
   state = {
     showBackdrop: false,
     showMobileNav: false,
-    isAuth: true,
+    isAuth: false,
     token: null,
     userId: null,
     authLoading: false,
@@ -58,28 +59,30 @@ class App extends Component {
 
   loginHandler = (event, authData) => {
     event.preventDefault();
+    console.log(authData, '[WHATS IN HERE]')
+    const { email, password} = authData;
+
     this.setState({ authLoading: true });
-    fetch('URL')
-      .then(res => {
-        if (res.status === 422) {
-          throw new Error('Validation failed.');
-        }
-        if (res.status !== 200 && res.status !== 201) {
+
+    axios.post('http://localhost:8080/login',{
+      email,
+      password,
+    })
+      .then(({ data}) => {
+        const { userData } = data
+        if (!userData) {
           console.log('Error!');
           throw new Error('Could not authenticate you!');
         }
-        return res.json();
-      })
-      .then(resData => {
-        console.log(resData);
+        console.log(data);
         this.setState({
           isAuth: true,
-          token: resData.token,
+          token: userData.token,
           authLoading: false,
-          userId: resData.userId
+          userId: userData.userId
         });
-        localStorage.setItem('token', resData.token);
-        localStorage.setItem('userId', resData.userId);
+        localStorage.setItem('token', userData.token);
+        localStorage.setItem('userId', userData.userId);
         const remainingMilliseconds = 60 * 60 * 1000;
         const expiryDate = new Date(
           new Date().getTime() + remainingMilliseconds
@@ -88,6 +91,9 @@ class App extends Component {
         this.setAutoLogout(remainingMilliseconds);
       })
       .catch(err => {
+        if (err.status === 422) {
+          throw new Error('Validation failed.');
+        }
         console.log(err);
         this.setState({
           isAuth: false,
@@ -100,30 +106,37 @@ class App extends Component {
   signupHandler = (event, authData) => {
     event.preventDefault();
     this.setState({ authLoading: true });
-    fetch('URL')
+    const { email, password, firstName, lastName, userName, confirmPassword } = authData.signupForm;
+    axios.post('http://localhost:8080/auth/signup', {
+      email: email.value, 
+      userName: userName.value, 
+      firstName: firstName.value, 
+      lastName: lastName.value, 
+      password: password.value, 
+      confirmPassword: confirmPassword.value
+     })
       .then(res => {
-        if (res.status === 422) {
+        const { user } = res.data;
+
+        if (!user) {
+          console.log('Error!');
+          throw new Error('Creating a user failed!');
+        }
+        console.log(user, 'THIS IS A USER');
+        this.setState({ isAuth: false, authLoading: false });
+        this.props.history.push('/');
+      })
+      .catch(err => {
+        console.log(err.response, 'IS HTHIDS FR');
+        if (err.status === 422) {
           throw new Error(
             "Validation failed. Make sure the email address isn't used yet!"
           );
         }
-        if (res.status !== 200 && res.status !== 201) {
-          console.log('Error!');
-          throw new Error('Creating a user failed!');
-        }
-        return res.json();
-      })
-      .then(resData => {
-        console.log(resData);
-        this.setState({ isAuth: false, authLoading: false });
-        this.props.history.replace('/');
-      })
-      .catch(err => {
-        console.log(err);
         this.setState({
           isAuth: false,
           authLoading: false,
-          error: err
+          error: err.response.data
         });
       });
   };

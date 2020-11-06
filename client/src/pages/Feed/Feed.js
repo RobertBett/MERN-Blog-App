@@ -107,7 +107,6 @@ class Feed extends Component {
     };
 
   finishEditHandler = postData => {
-      console.log(postData, 'IS THERE AN IMAGE INSIDE??');
       const { title, content, image } = postData;
       this.setState({
         editLoading: true
@@ -155,8 +154,9 @@ class Feed extends Component {
               );
                 updatedPosts[postIndex] = post;
               } else{
-                updatedPosts = prevState.posts.concat(post);
+                updatedPosts = [post, ...prevState.posts];
               }
+            console.log(updatedPosts,'DOES UNSHIFT WORK??');
             return {
               posts: updatedPosts,
               openModal: false,

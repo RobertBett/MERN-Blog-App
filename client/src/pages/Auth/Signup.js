@@ -20,7 +20,25 @@ class Signup extends Component {
         touched: false,
         validators: [required, length({ min: 5 })]
       },
-      name: {
+      confirmPassword: {
+        value: '',
+        valid: false,
+        touched: false,
+        validators: [required, length({ min: 5 })]
+      },
+      userName: {
+        value: '',
+        valid: false,
+        touched: false,
+        validators: [required]
+      },
+      firstName: {
+        value: '',
+        valid: false,
+        touched: false,
+        validators: [required]
+      },
+      lastName: {
         value: '',
         valid: false,
         touched: false,
@@ -85,15 +103,37 @@ class Signup extends Component {
             touched={this.state.signupForm['email'].touched}
           />
           <Input
-            id="name"
-            label="Your Name"
+            id="userName"
+            label="userName"
             type="text"
             control="input"
             onChange={this.inputChangeHandler}
-            onBlur={this.inputBlurHandler.bind(this, 'name')}
-            value={this.state.signupForm['name'].value}
-            valid={this.state.signupForm['name'].valid}
-            touched={this.state.signupForm['name'].touched}
+            onBlur={this.inputBlurHandler.bind(this, 'userName')}
+            value={this.state.signupForm['userName'].value}
+            valid={this.state.signupForm['userName'].valid}
+            touched={this.state.signupForm['userName'].touched}
+          />
+          <Input
+            id="firstName"
+            label="FirstName"
+            type="text"
+            control="input"
+            onChange={this.inputChangeHandler}
+            onBlur={this.inputBlurHandler.bind(this, 'firstName')}
+            value={this.state.signupForm['firstName'].value}
+            valid={this.state.signupForm['firstName'].valid}
+            touched={this.state.signupForm['firstName'].touched}
+          />
+          <Input
+            id="lastName"
+            label="lastName"
+            type="text"
+            control="input"
+            onChange={this.inputChangeHandler}
+            onBlur={this.inputBlurHandler.bind(this, 'lastName')}
+            value={this.state.signupForm['lastName'].value}
+            valid={this.state.signupForm['lastName'].valid}
+            touched={this.state.signupForm['lastName'].touched}
           />
           <Input
             id="password"
@@ -105,6 +145,17 @@ class Signup extends Component {
             value={this.state.signupForm['password'].value}
             valid={this.state.signupForm['password'].valid}
             touched={this.state.signupForm['password'].touched}
+          />
+          <Input
+            id="confirmPassword"
+            label="Confirm Password"
+            type="password"
+            control="input"
+            onChange={this.inputChangeHandler}
+            onBlur={this.inputBlurHandler.bind(this, 'confirmPassword')}
+            value={this.state.signupForm['confirmPassword'].value}
+            valid={this.state.signupForm['confirmPassword'].valid}
+            touched={this.state.signupForm['confirmPassword'].touched}
           />
           <Button design="raised" type="submit" loading={this.props.loading}>
             Signup
