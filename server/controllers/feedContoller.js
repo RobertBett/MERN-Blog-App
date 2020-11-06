@@ -12,6 +12,7 @@ exports.getPosts = (req, res, next ) =>{
     .then((count) => {
         totalItems = count;
         return Post.find()
+            .sort({ "createdAt": -1, "updatedAt": -1 }) 
             .skip(( currentPage - 1 ) * perPage)
             .limit(perPage);
     })  
@@ -40,6 +41,11 @@ exports.getPost = ( req, res, next ) =>{
             })
     }).catch((err) => {
         console.error(err);
+        console.error(err);
+        if(!err.statusCode){
+            err.statusCode = 500;
+        }
+        next(err);
     });
 }
 
@@ -108,7 +114,6 @@ exports.deletePost = ( req, res, next ) =>{
 
 exports.createPost = (req, res, next) =>{
     const errors = validationResult(req);
-    console.log(req.body, req.file,'IS FORM DATA WORKING?')
     if(!errors.isEmpty()){
         return res.status(422).json({
             message: 'Validation failed, entered data is incorrect.', 
@@ -134,10 +139,10 @@ exports.createPost = (req, res, next) =>{
         }
     })  
     post.save()
-    .then((result) => {
+    .then((post) => {
         res.status(201).json({
             message:'Post created Successfully!',
-            post: result
+            post,
         });
     }).catch((err) => {
         console.error(err);
