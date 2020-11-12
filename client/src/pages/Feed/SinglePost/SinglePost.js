@@ -15,12 +15,17 @@ class SinglePost extends Component {
 
   componentDidMount() {
     const postId = this.props.match.params.postId;
-    axios.get(`http://localhost:8080/feed/post/${postId}`)
+    axios.get(`http://localhost:8080/feed/post/${postId}`,{
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${this.props.token}`
+       }
+    })
       .then(({ data }) => {
         console.log(data, 'THE LAST THING');
         this.setState({
           title: data.post.title,
-          author: data.post.creator.name,
+          author: data.post.creator.userName,
           image: data.post.imageUrl,
           date: new Date(data.post.createdAt).toLocaleDateString('en-US'),
           content: data.post.content

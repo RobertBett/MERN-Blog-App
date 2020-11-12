@@ -1,6 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator/check')
 const { getPosts, createPost, deletePost, editPost, getPost } = require('../controllers/feedContoller');
+const isAuth = require('../middleware/isAuth');
 
 const router = express();
 
@@ -16,12 +17,12 @@ const validations = [
     .trim()
 ]
 
-router.get('/feed/post/:postId', getPost);
-router.get('/feed/posts', getPosts);
+router.get('/feed/post/:postId',isAuth, getPost);
+router.get('/feed/posts',isAuth, getPosts);
 
-router.post('/post', validations, createPost);
-router.put('/edit-post/:postId', validations, editPost);
-router.delete('/delete-post/:postId', deletePost);
+router.post('/post', validations,isAuth, createPost);
+router.put('/edit-post/:postId', validations,isAuth, editPost);
+router.delete('/delete-post/:postId',isAuth, deletePost);
 
 
 module.exports = router;

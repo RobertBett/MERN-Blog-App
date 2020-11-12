@@ -53,10 +53,16 @@ const uri = process.env.MONGO_URL;
 
 mongoose.connect(uri, { useFindAndModify: false })
 .then(() => {
-    app.listen(port, () => {
+    const server = app.listen(port, () => {
         console.log(chalk.green.bold(`On Port:${port}`))
         console.log(chalk.green.bold.underline(`Running on http://localhost:${port}`))
-    });  
+    }); 
+    const io = require('./socket').init(server,{ origins: '*:*'});
+    io.on('connection', socket => { 
+        console.log(chalk.yellowBright.bold(`Socket Connected On Port:${port}`))
+    });
+
+
 }).catch((err) => {
     console.error(err);
 });

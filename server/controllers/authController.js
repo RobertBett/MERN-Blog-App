@@ -11,6 +11,51 @@ const transporter = nodemailer.createTransport(sendgridTransport({
     }
 }));
 
+exports.getUserStatus = (req, res, next ) =>{
+    User.findById(req.userId)
+    .then((user) => {
+        if(!user){
+            const error = new Error('User not found.');
+            error.statusCode = 404;
+            throw error;
+        }
+        res.status(200).json({
+            status: user.status
+        })
+    })
+    .catch((err) => {
+        if(!err.statusCode){
+            err.statusCode = 500;
+        }
+        next(err);
+    })
+};
+
+exports.updateUserStatus = ( req, res, next) =>{
+    const newStatus = req.body.status;
+    console.log(newStatus);
+    User.findById(req.userId)
+    .then((user) => {
+        if(!user){
+            const error = new Error('User not found.');
+            error.statusCode = 404;
+            throw error;
+        }
+        user.status = newStatus;
+        return user.save();
+    })
+    .then(() => {
+        res.status(200).json({   message:'Successful Status Update' }) 
+    })
+    .catch((err) => {
+        console.error(err);
+        if(!err.statusCode){
+            err.statusCode = 500;
+        }
+        next(err);
+    });
+}
+
 exports.postLogin = (req, res, next ) =>{
     const {email, password } = req.body;
     const errors = validationResult(req);
@@ -70,7 +115,6 @@ exports.postLogin = (req, res, next ) =>{
 
 exports.postSignup = (req, res, next) =>{
     const { userName, email, password, firstName,lastName } = req.body;
-    console.log(req.body, ['ILL FIND YOUUU']);
     const errors = validationResult(req);
     if(!errors.isEmpty()){
         const error = new Error('Validation Errors');
@@ -94,7 +138,7 @@ exports.postSignup = (req, res, next) =>{
         res.status(200).json({ 
             message:'Successful Signup',
             user
-        })
+        });
         return transporter.sendMail({
             to: email,
             from: 'robertbett6@gmail.com',

@@ -1,11 +1,18 @@
 const express = require('express');
 const { check, body } = require('express-validator/check');
-const { postSignup, postLogin } = require('../controllers/authController');
+const { postSignup, postLogin, getUserStatus, updateUserStatus } = require('../controllers/authController');
+const isAuth = require('../middleware/isAuth');
 const User = require('../models/User');
 
 const router = express();
 
 const validations = { 
+    updateStatus:[
+        body('status',
+        'Please enter Something'
+        ).trim()
+        .isEmpty()
+    ],
     loginValidations :[
         check('email')
         .isEmail()
@@ -34,18 +41,17 @@ const validations = {
             .then((result) => {
                 if(result) return Promise.reject('User Name Already Exists Try Another One!');
             })
-        }).normalizeEmail(),
+        }),
         body('firstName',
         'Please enter a valid firstName'
-        ).isLength({ min: 1 }).isAlphanumeric(),
+        ).isLength({ min: 1 }).bail().isAlphanumeric(),
         body('lastName',
-        'Please enter a valid Password'
-        ).isLength({ min: 1 }).isAlphanumeric(),
+        'Please enter a valid lastName'
+        ).isLength({ min: 1 }).bail().isAlphanumeric(),
         body('password',
         'Please enter a valid Password'
-        )
-        .trim()
-        .isLength({ min: 5 }).isAlphanumeric(),
+        ) .trim()
+        .isLength({ min: 5 }).bail().isAlphanumeric(),
         body('confirmPassword')
         .custom((value, { req }) =>{
             console.log(req.body.password, value != req.body.password);
@@ -57,7 +63,9 @@ const validations = {
     ]
 }
 
-router.post('/auth/signup', validations.signupValidations, postSignup );
+router.get('/user/status', isAuth, getUserStatus);
+router.patch('/user/update/status', isAuth,validations.updateStatus, updateUserStatus);
+router.post('/auth/signup', validations.signupValidations, postSignup);
 router.post('/login', validations.loginValidations, postLogin );
 
 

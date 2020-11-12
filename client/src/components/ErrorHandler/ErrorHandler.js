@@ -13,7 +13,14 @@ const errorHandler = props => (
         onAcceptModal={props.onHandle}
         acceptEnabled
       >
-        <p>{props.error.message}</p>
+      {
+      console.log(props, 'WHATS IN PEROPS')
+      }
+        <p>{props.error.message} {props.error.response && props.error.response.data.message}</p>
+        {
+          props.error.data &&
+          props.error.data.map(errorField => <p key={errorField.msg}>{errorField.msg}</p>)
+        }
       </Modal>
     )}
   </Fragment>

@@ -1,5 +1,6 @@
 import React, { Component, Fragment } from 'react';
 import axios from 'axios';
+import openSocket from 'socket.io-client';
 import Post from '../../components/Feed/Post/Post';
 import Button from '../../components/Button/Button';
 import FeedEdit from '../../components/Feed/FeedEdit/FeedEdit';
@@ -23,25 +24,60 @@ class Feed extends Component {
   };
 
   componentDidMount() {
-    axios.get('URL')
-      .then(res => {
-        console.log(res)
-        if (res.status !== 200) {
-          throw new Error('Failed to fetch user status.');
+    axios.get('http://localhost:8080/user/status',
+    {
+      headers:{
+          Authorization: `Bearer ${this.props.token}`
         }
-        return res.json();
-      })
-      .then(resData => {
-        console.log(resData)
-        this.setState({ status: resData.status });
+    })
+      .then(({ data }) => {
+        console.log(data)
+        this.setState({ status: data.status });
       })
       .catch( err =>{
         console.error(err,'IS THIS A PROBLEM');
-        // this.catchError(err)
+        this.catchError(err)
       });
 
     this.loadPosts();
+    const socket = openSocket('http://localhost:8080', {transports: ['websocket', 'polling', 'flashsocket']});
+    socket.on('posts', data => {
+        if(data.action === 'create'){
+          this.addPost(data.post);
+        } else if (data.action === 'update'){
+          this.updatedPosts(data.post);
+        } else if (data.action === 'delete'){
+          this.loadPosts();
+        }
+    })
   }
+
+  addPost = post =>{
+    this.setState(prevState =>{
+      const updatedPosts = [...prevState.posts];
+      if(prevState.postPage ===1 ){
+        updatedPosts.pop();
+        updatedPosts.unshift(post)
+      }
+      return{
+        posts: updatedPosts,
+        totalPosts: prevState.totalPosts + 1
+      };
+    });
+  };
+
+  updatedPosts = post =>{
+    this.setState( prevState =>{
+      const updatedPosts = [...prevState.posts];
+      const updatedPostIndex = updatedPosts.findIndex(p => p._id === post._id);
+      if(updatedPostIndex > -1){
+        updatedPosts[updatedPostIndex] = post;
+      };
+      return{
+        posts: updatedPosts
+      };
+    });
+  };
 
   loadPosts = direction => {
     if (direction) {
@@ -56,7 +92,12 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    axios.get(`http://localhost:8080/feed/posts?page=${page}`)
+    axios.get(`http://localhost:8080/feed/posts?page=${page}`,
+    {
+      headers:{
+          Authorization: `Bearer ${this.props.token}`
+        }
+    })
       .then(({data}) => {
         console.log(data, 'WHATS IN THIS ');
         this.setState({
@@ -72,12 +113,12 @@ class Feed extends Component {
 
   statusUpdateHandler = event => {
     event.preventDefault();
-    fetch('URL')
-      .then(res => {
-        if (res.status !== 200 && res.status !== 201) {
-          throw new Error("Can't update status!");
-        }
-        return res.json();
+    const { status } = this.state ;
+    console.log(event.target[0].value, status['CSDKCMDSCKLMKJN']);
+    axios.patch('http://localhost:8080/user/update/status',{status},{
+      headers: {
+        Authorization: `Bearer ${this.props.token}`
+       }
       })
       .then(resData => {
         console.log(resData);
@@ -129,36 +170,24 @@ class Feed extends Component {
           `http://localhost:8080/edit-post/${postId}`
           :'http://localhost:8080/post',
           data: formData,
-          headers: {'Content-Type': 'multipart/form-data' }
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${this.props.token}`
+           }
         })
         .then((result) => {
-          if(openModal && isEditing )return axios.get(`http://localhost:8080/feed/post/${postId}`);
+          if(openModal && isEditing )return axios.get(`http://localhost:8080/feed/post/${postId}`,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${this.props.token}`
+             }
+          });
           return result;
         })
         .then(({ data }) => {
-          console.log(data,'THIS SHOULD WORK');
-          const { _id, title, content, creator, createdAt, imageUrl} = data.post;
-          const post = {
-            _id,
-            title,
-            imageUrl,
-            content,
-            creator,
-            createdAt,
-          };
           this.setState(prevState => {
-            let updatedPosts = [...prevState.posts];
-            if (openModal && isEditing) {
-              const postIndex = prevState.posts.findIndex(
-                p => p._id === prevState.editPost._id
-              );
-                updatedPosts[postIndex] = post;
-              } else{
-                updatedPosts = [post, ...prevState.posts];
-              }
-            console.log(updatedPosts,'DOES UNSHIFT WORK??');
             return {
-              posts: updatedPosts,
               openModal: false,
               editPost: null,
               editLoading: false,
@@ -168,6 +197,7 @@ class Feed extends Component {
         })
         .catch((err) => {
           console.error(err);
+        this.catchError(err)
           this.setState({
             openModal: false,
             editPost: null,
@@ -184,7 +214,12 @@ class Feed extends Component {
 
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
-    axios.delete(`http://localhost:8080/delete-post/${postId}`)
+    axios.delete(`http://localhost:8080/delete-post/${postId}`,{
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${this.props.token}`
+       }
+    })
       .then(() => {
         this.setState(prevState => {
           const updatedPosts = prevState.posts.filter(p => p._id !== postId);
@@ -192,8 +227,10 @@ class Feed extends Component {
         });
       })
       .catch(err => {
+        this.catchError(err)
         console.log(err);
         this.setState({ postsLoading: false });
+        
       });
   };
 
@@ -255,7 +292,7 @@ class Feed extends Component {
                 <Post
                   key={post._id}
                   id={post._id}
-                  author={post.creator.name}
+                  author={post.creator.userName}
                   date={new Date(post.createdAt).toLocaleDateString('en-US')}
                   title={post.title}
                   image={post.imageUrl}
