@@ -54,7 +54,7 @@ exports.updateUserStatus = ( req, res, next) =>{
         }
         next(err);
     });
-}
+};
 
 exports.postLogin = (req, res, next ) =>{
     const {email, password } = req.body;
@@ -111,7 +111,7 @@ exports.postLogin = (req, res, next ) =>{
         }
         next(err);
     });
-}
+};
 
 exports.postSignup = (req, res, next) =>{
     const { userName, email, password, firstName,lastName } = req.body;

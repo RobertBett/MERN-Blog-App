@@ -48,9 +48,9 @@ class Feed extends Component {
           this.updatedPosts(data.post);
         } else if (data.action === 'delete'){
           this.loadPosts();
-        }
-    })
-  }
+        };
+    });
+  };
 
   addPost = post =>{
     this.setState(prevState =>{
@@ -133,7 +133,6 @@ class Feed extends Component {
   startEditPostHandler = postId => {
       this.setState(prevState => {
         const loadedPost = { ...prevState.posts.find(p => p._id === postId) };
-
         return {
           openModal: true,
           isEditing:true,
