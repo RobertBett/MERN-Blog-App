@@ -59,84 +59,97 @@ class App extends Component {
 
   loginHandler = (event, authData) => {
     event.preventDefault();
-    console.log(authData, '[WHATS IN HERE]')
     const { email, password} = authData;
-
     this.setState({ authLoading: true });
-
-    axios.post('http://localhost:8080/login',{
-      email,
-      password,
+    const graphqlQuery ={
+      query:`
+        {
+          login(email:"${email}",password:"${password}")
+          {token userId}
+        }
+      `
+  }
+    axios({
+      method:'post',
+      url:'http://localhost:8080/graphql',
+      data:{...graphqlQuery }
     })
-      .then(({ data}) => {
-        const { userData } = data
-        if (!userData) {
-          console.log('Error!');
-          throw new Error('Could not authenticate you!');
-        }
-        console.log(data);
-        this.setState({
-          isAuth: true,
-          token: userData.token,
-          authLoading: false,
-          userId: userData.userId
-        });
-        localStorage.setItem('token', userData.token);
-        localStorage.setItem('userId', userData.userId);
-        const remainingMilliseconds = 60 * 60 * 1000;
-        const expiryDate = new Date(
-          new Date().getTime() + remainingMilliseconds
-        );
-        localStorage.setItem('expiryDate', expiryDate.toISOString());
-        this.setAutoLogout(remainingMilliseconds);
-      })
-      .catch(err => {
-        if (err.status === 422) {
-          throw new Error('Validation failed.');
-        }
-        console.log(err);
-        this.setState({
-          isAuth: false,
-          authLoading: false,
-          error: err
-        });
+    .then(({ data}) => {
+      console.log(data, '[WHATS IN HERE]')
+      const { token, userId } = data.data.login
+      console.log(data);
+      this.setState({
+        isAuth: true,
+        token,
+        authLoading: false,
+        userId
       });
+      localStorage.setItem('token', token);
+      localStorage.setItem('userId', userId);
+      const remainingMilliseconds = 60 * 60 * 1000;
+      const expiryDate = new Date(
+        new Date().getTime() + remainingMilliseconds
+      );
+      localStorage.setItem('expiryDate', expiryDate.toISOString());
+      this.setAutoLogout(remainingMilliseconds);
+    })
+    .catch(err => {
+      if (err.status === 422) {
+        throw new Error('Validation failed.');
+      }
+      console.log(err);
+      this.setState({
+        isAuth: false,
+        authLoading: false,
+        error: err
+      });
+    });
   };
 
   signupHandler = (event, authData) => {
     event.preventDefault();
     this.setState({ authLoading: true });
     const { email, password, firstName, lastName, userName, confirmPassword } = authData.signupForm;
-    axios.post('http://localhost:8080/auth/signup', {
-      email: email.value, 
-      userName: userName.value, 
-      firstName: firstName.value, 
-      lastName: lastName.value, 
-      password: password.value, 
-      confirmPassword: confirmPassword.value
+    console.log(confirmPassword)
+    const graphqlQuery ={
+        query:`
+          mutation {
+            createUser(userInput:{
+              email:"${email.value}",
+              userName:"${userName.value}", 
+              firstName:"${firstName.value}",
+              lastName:"${lastName.value}",
+              password:"${password.value}"
+            })
+            {_id email}
+          }
+        `
+    }
+    axios({
+      method:'post',
+      url:'http://localhost:8080/graphql',
+      data:{...graphqlQuery}
+     ,
+      headers: {
+        'Content-Type': 'application/json'
+      }
      })
       .then(res => {
-        const { user } = res.data;
-
-        if (!user) {
-          console.log('Error!');
-          throw new Error('Creating a user failed!');
-        }
-        console.log(user, 'THIS IS A USER');
         this.setState({ isAuth: false, authLoading: false });
         this.props.history.push('/');
       })
       .catch(err => {
-        console.log(err.response, 'IS HTHIDS FR');
+        console.log(err, 'IS HTHIDS FR');
         if (err.status === 422) {
           throw new Error(
             "Validation failed. Make sure the email address isn't used yet!"
           );
-        }
+        };
+
         this.setState({
           isAuth: false,
           authLoading: false,
-          error: err.response.data
+          error: err
         });
       });
   };

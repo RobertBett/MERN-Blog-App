@@ -7,7 +7,7 @@ const image = props => (
     className="image"
     style={{
       backgroundImage: `url(${props.imageUrl})`,
-      backgroundSize: props.contain ? 'contain' : 'cover',
+      backgroundSize: 'cover',
       backgroundPosition: props.left ? 'left' : 'center'
     }}
   />

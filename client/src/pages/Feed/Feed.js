@@ -1,6 +1,5 @@
 import React, { Component, Fragment } from 'react';
 import axios from 'axios';
-import openSocket from 'socket.io-client';
 import Post from '../../components/Feed/Post/Post';
 import Button from '../../components/Button/Button';
 import FeedEdit from '../../components/Feed/FeedEdit/FeedEdit';
@@ -9,6 +8,7 @@ import Paginator from '../../components/Paginator/Paginator';
 import Loader from '../../components/Loader/Loader';
 import ErrorHandler from '../../components/ErrorHandler/ErrorHandler';
 import './Feed.css';
+
 
 class Feed extends Component {
   state = {
@@ -24,60 +24,33 @@ class Feed extends Component {
   };
 
   componentDidMount() {
-    axios.get('http://localhost:8080/user/status',
-    {
-      headers:{
-          Authorization: `Bearer ${this.props.token}`
+    axios({
+      method:'post',
+      url:`http://localhost:8080/graphql`,
+      data:{
+        query:`
+        {
+          getStatus{ status }
         }
+        `
+      },
+      headers:{
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.props.token}`
+       }
     })
       .then(({ data }) => {
-        console.log(data)
-        this.setState({ status: data.status });
+        console.log(data.data, 'THIS IS THE UPDATED STATUS')
+        this.setState({ status: data.data.getStatus.status });
       })
       .catch( err =>{
         console.error(err,'IS THIS A PROBLEM');
-        this.catchError(err)
+        // this.catchError(err)
       });
 
     this.loadPosts();
-    const socket = openSocket('http://localhost:8080', {transports: ['websocket', 'polling', 'flashsocket']});
-    socket.on('posts', data => {
-        if(data.action === 'create'){
-          this.addPost(data.post);
-        } else if (data.action === 'update'){
-          this.updatedPosts(data.post);
-        } else if (data.action === 'delete'){
-          this.loadPosts();
-        };
-    });
   };
 
-  addPost = post =>{
-    this.setState(prevState =>{
-      const updatedPosts = [...prevState.posts];
-      if(prevState.postPage ===1 ){
-        updatedPosts.pop();
-        updatedPosts.unshift(post)
-      }
-      return{
-        posts: updatedPosts,
-        totalPosts: prevState.totalPosts + 1
-      };
-    });
-  };
-
-  updatedPosts = post =>{
-    this.setState( prevState =>{
-      const updatedPosts = [...prevState.posts];
-      const updatedPostIndex = updatedPosts.findIndex(p => p._id === post._id);
-      if(updatedPostIndex > -1){
-        updatedPosts[updatedPostIndex] = post;
-      };
-      return{
-        posts: updatedPosts
-      };
-    });
-  };
 
   loadPosts = direction => {
     if (direction) {
@@ -92,17 +65,42 @@ class Feed extends Component {
       page--;
       this.setState({ postPage: page });
     }
-    axios.get(`http://localhost:8080/feed/posts?page=${page}`,
-    {
-      headers:{
-          Authorization: `Bearer ${this.props.token}`
+
+    const graphqlQuery ={
+      query:`
+      query FetchPosts($page:Int){
+        posts(page:$page) {
+          posts{
+            _id
+            title
+            content
+            imageUrl
+            creator{
+              userName
+            }
+            createdAt
+          }
+          totalPosts
         }
+      }
+      `,
+      variables:{
+        page
+      }
+    }
+    axios({
+      method:'post',
+      url:`http://localhost:8080/graphql`,
+      data:{...graphqlQuery},
+      headers:{
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.props.token}`
+       }
     })
-      .then(({data}) => {
-        console.log(data, 'WHATS IN THIS ');
+    .then(({ data }) => {
         this.setState({
-          posts: data.posts,
-          totalPosts: data.totalItems,
+          posts: data.data.posts.posts,
+          totalPosts: data.data.posts.totalPosts,
           postsLoading: false
         });
       })
@@ -114,12 +112,27 @@ class Feed extends Component {
   statusUpdateHandler = event => {
     event.preventDefault();
     const { status } = this.state ;
-    console.log(event.target[0].value, status['CSDKCMDSCKLMKJN']);
-    axios.patch('http://localhost:8080/user/update/status',{status},{
-      headers: {
+    const graphqlQuery = {
+      query:`
+      mutation UpdateUserStatus($status: String!){
+        updateStatus( status:$status){ 
+          status
+        }
+      }
+      `,
+      variables:{
+        status
+      }
+    }
+    axios({
+      method:'post',
+      url:`http://localhost:8080/graphql`,
+      data:{...graphqlQuery},
+      headers:{
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.props.token}`
        }
-      })
+    })
       .then(resData => {
         console.log(resData);
       })
@@ -148,54 +161,118 @@ class Feed extends Component {
 
   finishEditHandler = postData => {
       const { title, content, image } = postData;
+      const { editPost, isEditing } = this.state; 
       this.setState({
         editLoading: true
       });
 
       // Set up data (with image!)
+      console.log(image);
       let formData = new FormData();
-      formData.append('title', title);
-      formData.append('content', content);
       formData.append('image', image);
-
-      for (var key of formData.entries()) {
-        console.log(key[0] + ', ' + key[1])
-      }
-      const { openModal, isEditing,postId } = this.state; 
+      if (editPost) {
+        formData.append('oldPath', editPost.imagePath)
+      };
 
       axios({
-          method: openModal && isEditing ?'put' : 'post',
-          url: openModal && isEditing ? 
-          `http://localhost:8080/edit-post/${postId}`
-          :'http://localhost:8080/post',
-          data: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${this.props.token}`
-           }
-        })
-        .then((result) => {
-          if(openModal && isEditing )return axios.get(`http://localhost:8080/feed/post/${postId}`,
+        method:'put',
+        url:`http://localhost:8080/post-image`,
+        data:formData,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${this.props.token}`
+         }
+      }).then(({ data}) => {
+          const imageUrl = data.filePath;
+          let graphqlQuery = !isEditing ? {
+            query: `
+              mutation{
+                createPost(postInput:{
+                  title:"${title}",
+                  content:"${content}",
+                  imageUrl:"${imageUrl}"
+              
+                })
+                {_id 
+                  title 
+                  content 
+                  imageUrl
+                  creator{
+                    userName
+                  } 
+                  createdAt 
+                  updatedAt  
+                }
+              }
+            `
+          }
+          :
           {
+            query: `
+              mutation{
+                updatePost(postId:"${editPost._id}",postInput:{
+                  title:"${title}",
+                  content:"${content}",
+                  imageUrl:"${imageUrl}"
+              
+                })
+                {_id 
+                  title 
+                  content 
+                  imageUrl
+                  creator{
+                    userName
+                  } 
+                  createdAt 
+                  updatedAt  
+                }
+              }
+            `
+          };
+          return axios({
+            method:'post',
+            url:`http://localhost:8080/graphql`,
+            data: {...graphqlQuery},
             headers: {
-              'Content-Type': 'multipart/form-data',
+              'Content-Type': 'application/json',
               Authorization: `Bearer ${this.props.token}`
-             }
-          });
-          return result;
+            }
+          })
         })
-        .then(({ data }) => {
+        .then(({data}) => {
+          let resDataField = editPost? 'updatePost' : 'createPost';
+          const { _id, title, content, imageUrl, creator, createdAt } = data.data[resDataField];
+          const post = {
+            _id, 
+            title,
+            content, 
+            imageUrl, 
+            creator, 
+            createdAt 
+          };
           this.setState(prevState => {
+            let updatedPosts = [...prevState.posts];
+            if (prevState.editPost) {
+                const postIndex = prevState.posts.findIndex(
+                    p => p._id === prevState.editPost._id
+                );
+                updatedPosts[postIndex] = post;
+            } else {
+                if (prevState.posts.length >= 2) {
+                    updatedPosts.pop();
+                }
+                updatedPosts.unshift(post);
+            }
             return {
+              posts: updatedPosts,
               openModal: false,
+              isEditing: false,
               editPost: null,
-              editLoading: false,
-              isEditing: false
+              editLoading: false
             };
-          });
+          })
         })
         .catch((err) => {
-          console.error(err);
         this.catchError(err)
           this.setState({
             openModal: false,
@@ -213,24 +290,34 @@ class Feed extends Component {
 
   deletePostHandler = postId => {
     this.setState({ postsLoading: true });
-    axios.delete(`http://localhost:8080/delete-post/${postId}`,{
+    axios({
+      method:'post',
+      url:'http://localhost:8080/graphql',
+      data:{ 
+        query:`
+          mutation{
+            deletePost(postId:"${postId}")
+          }
+        `
+      }
+     ,
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.props.token}`
-       }
-    })
-      .then(() => {
-        this.setState(prevState => {
-          const updatedPosts = prevState.posts.filter(p => p._id !== postId);
-          return { posts: updatedPosts, postsLoading: false };
-        });
-      })
-      .catch(err => {
-        this.catchError(err)
-        console.log(err);
-        this.setState({ postsLoading: false });
-        
+      }
+     })
+    .then(() => {
+      this.setState(prevState => {
+        const updatedPosts = prevState.posts.filter(p => p._id !== postId);
+        return { posts: updatedPosts, postsLoading: false };
       });
+    })
+    .catch(err => {
+      this.catchError(err)
+      console.log(err);
+      this.setState({ postsLoading: false });
+      
+    });
   };
 
   errorHandler = () => {
@@ -238,7 +325,7 @@ class Feed extends Component {
   };
 
   catchError = error => {
-    this.setState({ error: error });
+    this.setState({ error });
   };
 
   render() {

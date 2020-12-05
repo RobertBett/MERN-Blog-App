@@ -15,20 +15,40 @@ class SinglePost extends Component {
 
   componentDidMount() {
     const postId = this.props.match.params.postId;
-    axios.get(`http://localhost:8080/feed/post/${postId}`,{
-      headers: {
-        'Content-Type': 'multipart/form-data',
+    console.log(typeof postId);
+    const graphqlQuery ={
+      query:`
+      {
+        post(postId:"${postId}") {
+            title
+            content
+            imageUrl
+            creator{
+              userName
+            }
+            createdAt
+          }
+      }
+      `
+    }
+    axios({
+      method:'post',
+      url:`http://localhost:8080/graphql`,
+      data:{...graphqlQuery},
+      headers:{
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.props.token}`
        }
     })
       .then(({ data }) => {
         console.log(data, 'THE LAST THING');
+        const {title, creator,imageUrl,createdAt,content } = data.data.post
         this.setState({
-          title: data.post.title,
-          author: data.post.creator.userName,
-          image: data.post.imageUrl,
-          date: new Date(data.post.createdAt).toLocaleDateString('en-US'),
-          content: data.post.content
+          title,
+          author:creator.userName,
+          image: imageUrl,
+          date: new Date(createdAt).toLocaleDateString('en-US'),
+          content: content
         });
       })
       .catch(err => {
@@ -44,7 +64,7 @@ class SinglePost extends Component {
           Created by {this.state.author} on {this.state.date}
         </h2>
         <div className="single-post__image">
-          <Image contain imageUrl={`http://localhost:8080/${this.state.image}`} />
+          <Image imageUrl={`http://localhost:8080/${this.state.image}`} />
         </div>
         <p>{this.state.content}</p>
       </section>

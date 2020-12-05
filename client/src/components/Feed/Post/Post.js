@@ -13,7 +13,7 @@ const post = props => (
       <h1 className="post__title">{props.title}</h1>
     </header>
     <div className="post__image">
-      <Image imageUrl={`http://localhost:8080/${props.image}`} contain />
+      <Image imageUrl={`http://localhost:8080/${props.image}`} />
     </div>
     <div className="post__content">{props.content}</div>
     <div className="post__actions">
