@@ -101,11 +101,11 @@ module.exports = {
         }
    },
    posts: async ({ page }, req) =>{
-        if(!req.isAuth){
-            const error = new Error('Not Authenticated');
-            error.code = 401;
-            throw error;
-        };
+        // if(!req.isAuth){
+        //     const error = new Error('Not Authenticated');
+        //     error.code = 401;
+        //     throw error;
+        // };
         if(!page){
             page = 1;
         };
